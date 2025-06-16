@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <div class="container">
+    <h2>Buscar Cliente</h2>
+    <div class="input-group mb-3">
+      <input type="text" id="inputNombre" class="form-control" placeholder="Nombre del cliente" />
+      <button id="btnBuscar" class="btn btn-primary">Buscar</button>
+    </div>
+
+    <div id="seccionCliente" class="d-none">
+      <h4 id="clienteNombre"></h4>
+      <p><strong>Edad:</strong> <span id="clienteEdad"></span></p>
+
+      <h5>Preferencias</h5>
+      <form id="formPreferencias">
+        <div class="mb-2">
+          <label>Tipos:</label>
+          <input type="text" name="types" class="form-control" />
+        </div>
+        <div class="mb-2">
+          <label>Perfiles de sabor:</label>
+          <input type="text" name="flavor_profiles" class="form-control" />
+        </div>
+        <div class="mb-2">
+          <label>Orígenes:</label>
+          <input type="text" name="origins" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-success">Guardar preferencias</button>
+      </form>
+
+      <button id="btnRecomendar" class="btn btn-warning mt-3">Generar Recomendación</button>
+      <ul id="listaRecomendaciones" class="list-group mt-3"></ul>
+
+      <h5 class="mt-4">Historial</h5>
+      <ul id="listaHistorial" class="list-group"></ul>
+    </div>
+  </div>
+
+
+
+  <script src="../static/js/main.js"></script>
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-primary">Clients administrator</h2>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <table class="table table-hover align-middle" id="tabla-clientes">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Preferences</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar preferencias -->
+<div class="modal fade" id="modalPreferencias" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content shadow rounded">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Edit preferences</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="clienteNombre">
+        <div class="mb-3">
+          <label class="form-label">Types</label>
+          <input type="text" class="form-control" id="tipo" placeholder="Ej: Whisky, Vodka">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Flavors</label>
+          <input type="text" class="form-control" id="sabor" placeholder="Ej: Dulce, Añejo">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Origin</label>
+          <input type="text" class="form-control" id="origen" placeholder="Ej: México, Escocia">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="guardarCambios()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para mostrar recomendaciones -->
+<div class="modal fade" id="modalRecomendacion" tabindex="-1" aria-labelledby="modalRecomendacionLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content shadow rounded">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="modalRecomendacionLabel">Recomendations for <span id="nombreClienteRec"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <h6 class="text-muted">Clients preferences:</h6>
+        <ul id="preferenciasCliente" class="mb-3"></ul>
+        <hr>
+        <h6 class="text-muted">Recommendations:</h6>
+        <ul id="listaRecomendaciones" class="list-unstyled"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let clienteActivo = "";
+
+function cargarClientes() {
+  fetch("/api/customers")
+    .then(res => res.json())
+    .then(clientes => {
+      const tbody = document.querySelector("#tabla-clientes tbody");
+      tbody.innerHTML = "";
+      clientes.forEach(cliente => {
+        const tipos = (cliente.preferences?.types || []).join(", ");
+        const sabores = (cliente.preferences?.flavor_profiles || []).join(", ");
+        const origenes = (cliente.preferences?.origins || []).join(", ");
+
+        const fila = `<tr>
+          <td>${cliente.name}</td>
+          <td>${cliente.age || ""}</td>
+          <td>
+            <strong>Type:</strong> ${tipos}<br>
+            <strong>Flavor:</strong> ${sabores}<br>
+            <strong>Origin:</strong> ${origenes}
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary mb-1" onclick="editar('${cliente.name}')">✏️ Edit</button><br>
+            <button class="btn btn-sm btn-outline-success" onclick="actualizarRecomendacion('${cliente.name}')">🔄 Recomendation</button>
+          </td>
+        </tr>`;
+        tbody.insertAdjacentHTML("beforeend", fila);
+      });
+    });
+}
+
+function editar(nombre) {
+  clienteActivo = nombre;
+  fetch(`/api/customers/${nombre}`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("clienteNombre").value = data.name;
+      document.getElementById("tipo").value = (data.preferences?.types || []).join(", ");
+      document.getElementById("sabor").value = (data.preferences?.flavor_profiles || []).join(", ");
+      document.getElementById("origen").value = (data.preferences?.origins || []).join(", ");
+      new bootstrap.Modal(document.getElementById("modalPreferencias")).show();
+    });
+}
+
+function guardarCambios() {
+  const nombre = document.getElementById("clienteNombre").value;
+  const preferences = {
+    types: document.getElementById("tipo").value.split(",").map(v => v.trim()),
+    flavor_profiles: document.getElementById("sabor").value.split(",").map(v => v.trim()),
+    origins: document.getElementById("origen").value.split(",").map(v => v.trim())
+  };
+
+  fetch(`/api/customers/${nombre}/update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ preferences })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert("✅ Preferencias actualizadas");
+      cargarClientes();
+      bootstrap.Modal.getInstance(document.getElementById("modalPreferencias")).hide();
+    } else {
+      alert("⚠️ No se pudo actualizar.");
+    }
+  });
+}
+
+function actualizarRecomendacion(nombre) {
+  // Primero obtenemos las preferencias actuales del cliente
+  fetch(`/api/customers/${nombre}`)
+    .then(res => res.json())
+    .then(cliente => {
+      if (!cliente || cliente.error) {
+        alert("⚠️ Cliente no encontrado.");
+        return;
+      }
+
+      // Mostramos preferencias en el modal
+      const prefs = cliente.preferences || {};
+      const ulPrefs = document.getElementById("preferenciasCliente");
+      ulPrefs.innerHTML = `
+        <li><strong>Tipos:</strong> ${(prefs.types || []).join(", ")}</li>
+        <li><strong>Sabores:</strong> ${(prefs.flavor_profiles || []).join(", ")}</li>
+        <li><strong>Origenes:</strong> ${(prefs.origins || []).join(", ")}</li>
+      `;
+
+      // Luego solicitamos las recomendaciones
+      fetch(`/api/recommendations?name=${encodeURIComponent(nombre)}`)
+        .then(res => res.json())
+        .then(recomendaciones => {
+          if (!Array.isArray(recomendaciones)) {
+            alert("⚠️ No se pudo generar recomendación: " + (recomendaciones.error || ""));
+            return;
+          }
+
+          // Llenamos la lista de recomendaciones
+          const ulRecom = document.getElementById("listaRecomendaciones");
+          ulRecom.innerHTML = "";
+
+          recomendaciones.forEach(rec => {
+            const item = document.createElement("li");
+            item.classList.add("mb-2");
+            item.innerHTML = `
+              <strong>${rec.name}</strong> - ${rec.type} de ${rec.origin} 
+              <span class="badge bg-secondary">Similitud: ${(rec.similarity * 100).toFixed(1)}%</span>
+            `;
+            ulRecom.appendChild(item);
+          });
+
+          // Asignamos el nombre al modal y lo mostramos
+          document.getElementById("nombreClienteRec").textContent = nombre;
+          new bootstrap.Modal(document.getElementById("modalRecomendacion")).show();
+        });
+    });
+}
+
+document.addEventListener("DOMContentLoaded", cargarClientes);
+</script>
+{% endblock %}

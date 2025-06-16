@@ -1,0 +1,116 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container-fluid">
+  <h2 class="text-center fw-bold my-4 text-primary">📊 Statistics Dashboard</h2>
+
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-primary text-white">
+        <div class="card-body text-center">
+          <h5 class="card-title">Total Clients</h5>
+          <p class="fs-3 fw-bold" id="totalClientes">...</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-success text-white">
+        <div class="card-body text-center">
+          <h5 class="card-title">Total Recomendations</h5>
+          <p class="fs-3 fw-bold" id="totalRecomendaciones">...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">Common types</div>
+        <div class="card-body">
+          <canvas id="chartTipos" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">Common flavor profiles</div>
+        <div class="card-body">
+          <canvas id="chartSabores" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">Frecuents origins</div>
+        <div class="card-body">
+          <canvas id="chartOrigenes" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let charts = [];
+
+fetch('/api/estadisticas')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("totalClientes").textContent = data.total_clientes;
+    document.getElementById("totalRecomendaciones").textContent = data.total_recomendaciones;
+
+    function ordenar(obj) {
+      return Object.entries(obj)
+        .sort((a, b) => b[1] - a[1])
+        .reduce((acc, [k, v]) => {
+          acc.labels.push(k);
+          acc.values.push(v);
+          return acc;
+        }, { labels: [], values: [] });
+    }
+
+    const tiposOrdenados = ordenar(data.tipos);
+    const saboresOrdenados = ordenar(data.sabores);
+    const origenesOrdenados = ordenar(data.origenes);
+
+    charts.push(new Chart(document.getElementById('chartTipos'), {
+      type: 'bar',
+      data: {
+        labels: tiposOrdenados.labels,
+        datasets: [{
+          label: 'Tipos',
+          data: tiposOrdenados.values,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)'
+        }]
+      }
+    }));
+
+    charts.push(new Chart(document.getElementById('chartSabores'), {
+      type: 'bar',
+      data: {
+        labels: saboresOrdenados.labels,
+        datasets: [{
+          label: 'Sabores',
+          data: saboresOrdenados.values,
+          backgroundColor: 'rgba(255, 206, 86, 0.7)'
+        }]
+      }
+    }));
+
+    charts.push(new Chart(document.getElementById('chartOrigenes'), {
+      type: 'bar',
+      data: {
+        labels: origenesOrdenados.labels,
+        datasets: [{
+          label: 'Orígenes',
+          data: origenesOrdenados.values,
+          backgroundColor: 'rgba(75, 192, 192, 0.7)'
+        }]
+      }
+    }));
+  });
+</script>
+{% endblock %}

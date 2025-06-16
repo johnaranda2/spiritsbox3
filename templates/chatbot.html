@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="chat-container">
+  <div id="chat-box" class="chat-box"></div>
+  <div class="input-group mt-3">
+    <input type="text" id="userInput" class="form-control" placeholder="Write a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+{% endblock %}

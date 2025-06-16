@@ -1,0 +1,79 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center my-4">
+    <h3 class="fw-bold text-primary">Masive recomendations</h3>
+    <button id="btnRecomendarTodos" class="btn btn-danger">
+      🔄 Generate recommendations for everyone
+    </button>
+  </div>
+
+  <div class="mb-3">
+    <div class="progress d-none" id="progresoContainer" style="height: 25px;">
+      <div id="barraProgreso" class="progress-bar progress-bar-striped progress-bar-animated"
+           role="progressbar" style="width: 0%">0%</div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h5 class="mb-3 text-secondary">Results:</h5>
+      <ul id="resultadosMasivos" class="list-group"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById("btnRecomendarTodos").addEventListener("click", async () => {
+  const btn = document.getElementById("btnRecomendarTodos");
+  const barra = document.getElementById("barraProgreso");
+  const progreso = document.getElementById("progresoContainer");
+  const ul = document.getElementById("resultadosMasivos");
+
+  btn.disabled = true;
+  btn.textContent = "Generando recomendaciones...";
+  progreso.classList.remove("d-none");
+  ul.innerHTML = "";
+  barra.style.width = "0%";
+  barra.textContent = "0%";
+
+  const response = await fetch("/api/customers");
+  const clientes = await response.json();
+
+  for (let i = 0; i < clientes.length; i++) {
+    const cliente = clientes[i];
+    try {
+      const res = await fetch(`/api/recommendations?name=${encodeURIComponent(cliente.name)}`);
+      const data = await res.json();
+
+      const li = document.createElement("li");
+      li.className = "list-group-item";
+
+      if (data.error) {
+        li.innerHTML = `<strong>${cliente.name}:</strong> ❌ ${data.error}`;
+      } else {
+        const lista = data.map(rec =>
+          `<li><strong>${rec.name}</strong> — ${rec.type}, ${rec.origin} (Similarity: ${Math.round(rec.similarity * 100)}%)</li>`
+        ).join("");
+        li.innerHTML = `<strong>${cliente.name}:</strong><ul>${lista}</ul>`;
+      }
+
+      ul.appendChild(li);
+    } catch (err) {
+      const li = document.createElement("li");
+      li.className = "list-group-item text-danger";
+      li.textContent = `${cliente.name}: ⚠️ Error de conexión`;
+      ul.appendChild(li);
+    }
+
+    // Actualizar barra de progreso
+    const progresoPorc = Math.round(((i + 1) / clientes.length) * 100);
+    barra.style.width = `${progresoPorc}%`;
+    barra.textContent = `${progresoPorc}%`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = "🔄 Generate recommendations for everyone";
+});
+</script>
+{% endblock %}
